@@ -2,7 +2,7 @@ import math, numpy, random
 
 class SyntheticTypeCurve ():
 
-    def __init__(self, q_zero, q_peak, t_peak, t_plat, k, b, a):
+    def __init__(self, q_zero, q_peak, t_peak, t_plat, k, b, a, p_c):
         # Time (t) - measured in months (m)
         self.t = 0 
         self.t_plat = max(t_plat, 0)
@@ -33,18 +33,26 @@ class SyntheticTypeCurve ():
         self.p_shut = 0 # probability of shut in 
     
         # Inflow Oerformance Relationship 
-        self.p_ref = 50 #reference pressure
         self.p_low = 0 # low pressure, high flow
         self.p_high = 100 # high pressure, low flow
         self.x_low = 1.5 # high flow multiplier 
         self.x_high = 0 # flow flow multiplier 
+        
+        self.p_ref = 22 #reference pressure, psia
+        self.g_rec = 0.85 # gas recoverability 
+        self.g_init = 250 # initial gas content 
+        self.p_l = 750 # Langmuir pressure, psia
+        self.v_l = 550 # Langmuir volume, scf/tonne
+        self.n = 0.5 # exponent determining shape of inflow performance relationship
+        self.p_c = min(max(k,0),1) # performance coefficient --> make into method to find automatically later
+
 
     def build_curve(self, ts):
         # return a list of flows from a list of ts
         qs = []
         for t in ts:
             self.t = t
-            qs.append(self.calculate_synthetic_type_curve_noise())
+            qs.append(self.calculate_synthetic_type_curve())
         return qs
 
     # Section 3
@@ -144,7 +152,7 @@ class SyntheticTypeCurve ():
         # returns gas flow rate at time self.t with noise, disturbance, and shut-ins 
         return self.calculate_synthetic_type_curve() * self.calculate_noise() * self.calculate_disturbance_noise() * self.calculate_shutin_noise()
                             
-    def calculate_IPR(self, q, p):
+    def calculate_IPR(self, q, p): #remove function + variables?
         if p < self.p_low:
             return q * self.x_low
         elif self.p_low <= p <= self.p_ref:
@@ -154,7 +162,7 @@ class SyntheticTypeCurve ():
         else:
             return q * self.x_high
     
-    def get_flow(self, p=None):
+    def get_flow(self, p=None): #remove function?
         if p == None:
             p = self.p_ref
         
@@ -163,6 +171,41 @@ class SyntheticTypeCurve ():
         else:
             return self.calculate_IPR(self.calculate_synthetic_type_curve_noise(), p)
 
+    # Section 5
+
+    def calculate_gas_flow_cum(self):
+        # MMSCF
+        q_cum=[]
+        for temp in len(range(12 * 30)):
+            if temp == 0:
+                q_cum[temp] = 0
+            else:
+                q_cum[temp] = q_cum[temp - 1] + (self.calculate_synthetic_type_curve() * 30 * 0.0000002359705826) # remove manual conversion for engunits later 
+        return q_cum[self.t]
+
+        
+    def get_gas_flow_cum_max(self):
+        # MMSCF
+        q_max = 0
+        for i in len(range(12 * 30)):
+            if q_max < self.calculate_gas_flow_cum():
+                q_max = self.calculate_gas_flow_cum()
+        return q_max
+        
+    def calculate_gas_reservoir(self):
+        return ((self.get_gas_flow_cum_max() / self.g_rec) - self.calculate_gas_flow_cum())    
+
+    def calculate_gas_content(self):
+        # scf/tonnes
+        return ((self.calculate_gas_reservoir() * 1000000) / (((self.get_gas_flow_cum_max() * 1000000) / self.g_rec) / self.g_init))
+
+    def calculate_p_reservoir(self):
+        # psia
+        return (self.p_l / ((self.v_l / self.calculate_gas_content) - 1)) 
+
+    def calculate_gas_flow_rate(self):
+        # MMSCFD
+        return (self.p_c * (((self.calculate_p_reservoir() ** 2) - (self.p_ref ** 2)) ** self.n)) 
 
     def get_backpressure(self, interval, flow):
         pass

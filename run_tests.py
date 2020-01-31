@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import array as arr
 import json
+import matplotlib.patches as mpatches 
 
 #C:\Users\username\storagelocation\gasnetworkfinal\gasnetwork-master>python ./run_tests.py
 
@@ -20,21 +21,17 @@ qs_conv = [None]*len(qs)
 
 for i in range(len(qs)):
     qs_conv[i] = engunits.convert_value('svf', qs[i], 'MMSCFD')
-print(qs_conv)
-
-print (ts)  # in months
-print (qs)  # in MMSCFD
-
-fig = plt.plot(ts, qs, 'b')
+fig1 = plt.plot(ts, qs_conv, 'b', label = 'synthetic type curve')
+print(qs_conv) #in MMSCFD
 
 ref_series = json.load(open('ref_curve.py'))
-qs=ref_series["qs"]
-
-    
+qs_ref=ref_series["qs"]
 ts=ref_series["ts"]
-print(ts)
-print(qs)
-plt.plot(ts, qs, 'r')
+fig2 = plt.plot(ts, qs_ref, 'r', label = 'referral curve')
+print (qs_ref)  # in MMSCFD
+
+plt.ylabel('gas flow (MMSCFD)')
+plt.xlabel('time (months)')
 
 plt.show()
 

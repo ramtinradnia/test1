@@ -1,0 +1,16 @@
+# from gasnetwork.utils import engunits
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# xi = list(range(10))
+
+# rs=list(range(10))
+# x_conv = [None]*len(xi)
+
+# for i in range(len(xi)):
+#     x_conv[i] = engunits.convert_value('test', xi[i], 'test2')
+
+# fig = plt.plot(rs, x_conv)
+# plt.show()
+
+
