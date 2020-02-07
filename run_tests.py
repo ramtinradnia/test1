@@ -16,8 +16,8 @@ import matplotlib.patches as mpatches
 
 # type_curve = SyntheticTypeCurve(360, q_zero, q_peak, 5, 6, 0, 1, 1)
 # ts = list(range(type_curve.months))
-# qs = type_curve.build_curve(ts)
-# qs_conv = [None]*len(qs)
+# qs = type_curve.build_q_a()
+# qs_conv = [0]*len(qs)
 
 # for i in range(len(qs)):
 #     qs_conv[i] = engunits.convert_value('svf', qs[i], 'MMSCFD')
@@ -35,31 +35,34 @@ import matplotlib.patches as mpatches
 
 # plt.show()
 
-
 q_zero = 0 # MMSCFD
 q_zero = engunits.convert_value('svf', q_zero, 'MMSCFD')
 
 q_peak = 10 # MMSCFD
 q_peak = engunits.convert_value('svf', q_peak, 'MMSCFD')
 
-type_curve = SyntheticTypeCurve(3 ,q_zero, q_peak, 5, 6, 0, 1, 1)
-ts = list(range(type_curve.months)) 
-qs = type_curve.build_curve(ts)
-qs_conv = [None]*len(qs)
+type_curve = SyntheticTypeCurve(360, q_zero, q_peak, 5, 6, 0, 1, 1)
+ts = list(range(type_curve.months))
 
-ps = type_curve.find_p(ts)
-ps_conv = [None]*len(ps)
+qs = type_curve.build_q_c()
+qs_conv = [0] * len(qs)
+
+ps = type_curve.find_p()
+ps_conv = [0] * len(ps)
 
 for i in range(len(qs)):
-    if i == 0:
-        continue
     qs_conv[i] = engunits.convert_value('svf', qs[i], 'MMSCFD')
     ps_conv[i] = engunits.convert_value('Pa', ps[i], 'kPag')
-fig1 = plt.plot(qs_conv, ps_conv, 'b', label = 'inflow performance curve')
-print(qs_conv) # in MMSCFD
-print(ps_conv) # in kPag
+print (qs_conv)
+print (ps_conv)
 
+fig1 = plt.plot(qs_conv, ps_conv)
+plt.xlabel('Flow[MMSCFD]')
+plt.ylabel('Pressure[kPag]')
+plt.title('Inflow Performance Curve over Time for n=' + str(type_curve.n))
 plt.show()
+
+
 
 
 

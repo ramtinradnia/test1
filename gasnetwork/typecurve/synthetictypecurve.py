@@ -9,12 +9,16 @@ class SyntheticTypeCurve ():
         self.months = max(months, 0)
         self.t_plat = max(t_plat, 0)
 
-        # Gas flow lists
-        self.q_t = [0] * self.months 
+        # Gas flow lists - planned
+        self.q_a = [0] * self.months 
+        self.q_b = [0] * self.months
         self.p_res = [0] * self.months
-        self.q_cum = []
-
-
+        self.q_cum = [0] * len(self.q_c)
+        
+        # Gas flow lists - actual
+        self.q_c = [0] * self.months 
+    
+    
         # Standard Volume Flow (q) - measured in Standard meters cubes per second (Sm^3/s)
         self.q_zero = min(q_zero, q_peak)
         self.q_peak = q_peak
@@ -48,18 +52,32 @@ class SyntheticTypeCurve ():
         self.v_l = 550 # Langmuir volume, scf/tonne
         self.n = 0.5 # exponent determining shape of inflow performance relationship
 
+    def build_q_a(self):
+        # return a list of q_a from a list of months
+        for t in range(self.months):
+            self.months = t
+            self.q_a[t] = self.calculate_synthetic_type_curve()
         
-    def build_curve(self, ts):
-        # return a list of flows from a list of ts
-        for t in ts:
-            self.months = t
-            self.q_t[t] = self.calculate_gas_flow_rate()
-        return self.q_t
 
-    def find_p(self, ts):
-        # return a list of reservoir pressures from a list of ts
-        for t in ts:
+    def build_q_b(self):
+        # return a list of q_b from a list of months
+        for t in range(self.months):
             self.months = t
+            self.q_b[t] = self.calculate_synthetic_type_curve_noise()
+        return self.q_b
+
+    def build_q_c(self):
+        # return a list of flows from a list of months
+        self.build_q_b()
+        for t in range(self.months):
+            self.months = t
+            self.q_c[t] = self.calculate_gas_flow_rate()
+        return self.q_c
+
+    def find_p(self):
+        # return a list of reservoir pressures from a list of months
+        self.build_q_c()
+        for t in range(self.months):                                        
             self.p_res[t] = self.calculate_p_reservoir()
         return self.p_res
 
@@ -106,7 +124,7 @@ class SyntheticTypeCurve ():
             # returns decline flow at time self.months
             return self.q_peak / math.pow((1.0 + (self.b * self.a * (self.months - self.t_peak - self.t_plat))) , (1.0/self.b))
                         
-    def calculate_synthetic_type_curve(self):
+    def calculate_synthetic_type_curve(self):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ):
         # Equation 9
         if self.months == 0:
             return self.q_zero
@@ -164,31 +182,23 @@ class SyntheticTypeCurve ():
 
     def calculate_gas_flow_cum(self):
         # svf
-        temp = []
-        for a in range(12 * 30):
-            if a != 0:
-                temp.append(self.calculate_synthetic_type_curve_noise())
-                self.q_cum.append(sum(temp))
-        return self.q_cum[self.months]
+        self.build_q_b()
+        for i in range(1, len(self.q_b)):
+            self.q_cum[i] = self.q_b[i] + self.q_cum[i-1]
+            list(filter((0).__ne__, self.q_cum))
+        return self.q_cum[self.months] 
 
-    # def calculate_gas_flow_cum(self):
-    #         # svf
-    #         for a in range(6):
-    #             if a != 0:
-    #                 self.q_cum.append(accumulate(self.build_curve(list(range(a)))))
-    #         return self.q_cum[self.months]
-        
     def get_gas_flow_cum_max(self): 
         # svf
-        return max(self.q_cum or [0])
+        return self.q_cum[-1]
         
     def calculate_gas_reservoir(self):
         return ((self.get_gas_flow_cum_max() / self.g_rec) - self.calculate_gas_flow_cum())    
 
     def calculate_gas_content(self):
-        # scf/tonnes
+        #scf/tonnes
         return ((self.calculate_gas_reservoir() * 1000000.0) / (((self.get_gas_flow_cum_max() * 1000000.0) / self.g_rec) / self.g_init))
-
+        
     def calculate_p_reservoir(self):
         # psia
         return (self.p_l / ((self.v_l / self.calculate_gas_content()) - 1.0)) 
