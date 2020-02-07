@@ -57,7 +57,6 @@ class SyntheticTypeCurve ():
         for t in range(self.months):
             self.months = t
             self.q_a[t] = self.calculate_synthetic_type_curve()
-        
 
     def build_q_b(self):
         # return a list of q_b from a list of months
